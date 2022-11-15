@@ -16,6 +16,31 @@ class Api::V1::ProductsControllerTest < ActionDispatch::IntegrationTest
     assert_response :created
   end
 
+  test 'should forbid product creation' do
+    assert_no_difference('Product.count') do
+      post api_v1_products_url,
+      params: {title: @product.title, price: @product.price, published: @product.published},
+      as: :json
+    end
+    assert_response :forbidden
+  end
+
+  test 'should update product' do
+    patch api_v1_product_url(@product),
+    params: {title: @product.title},
+    headers: {Authorization: JsonWebToken.encode(user_id: @product.user.id)},
+    as: :json
+    assert_response :success
+  end
+
+  test 'should forbid update product' do
+    patch api_v1_product_url(@product),
+    params: {title: @product.title},
+    headers: {Authorization: JsonWebToken.encode(user_id: users(:two).id)},
+    as: :json
+    assert_response :forbidden
+  end
+
   test 'should show product' do
     get api_v1_product_url(@product), as: :json
     assert_response :success
@@ -27,4 +52,23 @@ class Api::V1::ProductsControllerTest < ActionDispatch::IntegrationTest
     get api_v1_products_url, as: :json
     assert_response :success
   end
+
+  test 'should destroy product' do
+    assert_difference('Product.count', -1) do
+      delete api_v1_product_url(@product),
+      headers: {Authorization: JsonWebToken.encode(user_id: @product.user.id)},
+      as: :json  
+    end
+    assert_response :no_content 
+  end
+
+  test 'should forbiddent destroy product' do
+    assert_no_difference('Product.count', -1) do
+      delete api_v1_product_url(@product),
+      headers: {Authorization: JsonWebToken.encode(user_id: users(:two).id)},
+      as: :json  
+    end
+    assert_response :forbidden 
+  end
+
 end
